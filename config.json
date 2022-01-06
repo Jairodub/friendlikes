@@ -1,4 +1,4 @@
 {
-    "connectionString": "mongodb://127.0.0.1:27017/friendlikes",
-    "secret": "This is the new secret string spiky"
+    "connectionString": "Your database url",
+    "secret": "Some secret string to use for connection"
 }
