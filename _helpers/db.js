@@ -6,5 +6,7 @@ var connection = mongoose.connect(process.env.MONGODB_URI || config.connectionSt
 
 module.exports = {
     User: require('../_models/user.model'),
+    Message: require ('../_models/message.model'),
+    PostItem: require ('../_models/post.item.model'),
     connection: connection
 };

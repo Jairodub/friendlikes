@@ -8,6 +8,7 @@ const schema = new Schema({
     createdDate: { type: Date, default: Date.now },
     bio: { type: String},
     pic: { type: String},
+    friends: []
 });
 
 schema.set('toJSON', {

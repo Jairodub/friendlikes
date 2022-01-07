@@ -22,6 +22,7 @@ if(process.env.NODE_ENV !== "production"){
 
 // api routes
 app.use('/users', require('./users/users.controller'));
+app.use('/postitems', require ('./post-items/post.items.controller'));
 
 // global error handler
 app.use(errorHandler);
