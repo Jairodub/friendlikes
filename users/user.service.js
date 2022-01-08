@@ -1,8 +1,15 @@
-const config = require('config.json');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+var express = require('express');
+var app = express();
+var server   = require('http').Server(app);
+var io       = require('socket.io')(server);
+
+const config = require('config.json');
 const db = require('_helpers/db');
 const User = db.User;
+const Online = db.Online;
+const Message = db.Message;
 
 module.exports = {
     authenticate,
@@ -10,7 +17,9 @@ module.exports = {
     getById,
     create,
     update,
-    delete: _delete
+    delete: _delete,
+    sendRequest,
+    confirmRequest,
 };
 
 async function authenticate({ username, password }) {
@@ -80,3 +89,138 @@ async function update(id, userParam) {
 async function _delete(id) {
     await User.findByIdAndRemove(id);
 }
+io.on('connection',(socket)=>{
+    io.to(socket.id).emit('username', username);
+    users[username ]= socket.id;
+    keys[socket.id] = username;
+    User.find({"username" : username},{doc:1,_id:0},function(err,doc){
+        if(err) return err;
+        else{
+            friends=[];
+            pending=[];
+            allFriends=[];
+            console.log("friends list: "+doc);
+            list=doc[0].friends.slice();
+            console.log(list);
+            
+            for(var i in list){
+                if(list[i].status=="Friend"){
+                    friends.push(list[i].name);
+                }
+                else if (list[i].status=="Pending"){
+                    pending.push(list[i].name);
+                }
+                else{
+                    continue;
+                }
+            } 
+            io.to(socket.id).emit('friend_list', friends);
+            io.to(socket.id).emit('pending_list', pending);
+            io.emit('users',users);
+        }
+    });
+    
+    socket.on('group message',function(msg){
+        io.emit('group',msg);
+    });
+    
+    socket.on('private message',function(msg){
+        Messages.create({
+            "message":msg.split("#*@")[1],
+            "sender" :msg.split("#*@")[2],
+            "reciever":msg.split("#*@")[0],
+            "date" : new Date()});
+        io.to(users[msg.split("#*@")[0]]).emit('private message', msg);
+    });
+    
+    socket.on('disconnect', function(){
+        delete users[keys[socket.id]];
+        delete keys[socket.id];
+        io.emit('users',users);
+        console.log(users);
+    });
+});
+async function sendRequest(req) {
+    User.find({"username" : req.body.myUsername,"friends.name":req.body.friendUsername},function(err,doc){
+        if(err) throw err 
+        else if(doc.length!=0){
+           console.log('friend request already sent');
+        }
+        else{
+            User.update({
+                username:req.body.myUsername
+            },{
+                $push:{
+                    friends:{
+                        name: req.body.friendUsername,
+                        status: "Pending"
+                    }
+                }
+            },{
+                upsert:true
+            },function(err,friendRequest){
+                if(err)throw err;
+            });
+            io.to(doc[req.body.friendUsername]).emit('message', req.body);
+        }
+    });
+}
+async function confirmRequest (req){
+    if(req.body.accept=="Yes"){
+        models.user.find({
+            "username" : req.body.friendUsername,
+            "friends.name":req.body.myUsername
+        },function(err,doc){
+            console.log('Friend request already ');
+            if(err){
+                
+                throw err;
+            }
+            else if(doc.length!=0){         
+                console.log('Friend request already accepted')
+            }
+            else{
+                models.user.update({
+                    "username":req.body.myUsername,
+                    "friends.name":req.body.friendUsername
+                },{
+                    '$set':{
+                        "friends.$.status":"Friend"
+                    }
+                },function(err,doc){
+                    if(err) throw err;
+                    else{
+                        io.to(users[req.body.friendUsername]).emit('friend', req.body.myUsername);
+                        io.to(users[req.body.myUsername]).emit('friend', req.body.friendUsername);
+                    }
+                });
+                models.user.update({
+                    username:req.body.friendUsername
+                },{
+                    $push:{
+                        friends:{
+                            name: req.body.myUsername,
+                            status: "Friend"
+                        }
+                    }
+                },{upsert:true},function(err,doc){
+                    if(err)throw err;
+                    
+                });
+            }
+        });
+    }
+    else{   
+        models.user.update({
+            "username":req.body.myUsername
+        },{
+            '$pull':{
+                'friends':{
+                    "name":req.body.friendUsername,
+                }
+            }
+        },function(err,doc){
+        if(err)throw err;
+        });
+    }
+};

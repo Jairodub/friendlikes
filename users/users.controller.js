@@ -10,6 +10,8 @@ router.get('/', getAll);
 router.get('/current', getCurrent);
 router.get('/:id', getById);
 router.put('/:id', update);
+router.post('/sendrequest', sendRequest);
+router.post('/confirmrequest', confirmRequest);
 router.delete('/:id', _delete);
 
 module.exports = router;
@@ -57,6 +59,17 @@ function _delete(req, res, next) {
         throw 'UnauthorizedError';
     }
     userService.delete(req.params.id)
+        .then(() => res.json({}))
+        .catch(err => next(err));
+}
+function sendRequest(req, res, next) {
+    userService.sendRequest(req)
+        .then(() => res.json({}))
+        .catch(err => next(err));
+}
+
+function confirmRequest(req, res, next) {
+    userService.confirmRequest(req)
         .then(() => res.json({}))
         .catch(err => next(err));
 }
