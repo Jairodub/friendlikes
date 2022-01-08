@@ -19,13 +19,12 @@ router.delete('/:id',_delete);
 module.exports = router;
 
 function create(req, res, next) {
-
     // check for spoofing
-    console.log(req.user.id);
+    // console.log(req.user.id);
     // if (req.body.id !== req.user.userId) throw 'User mismatch';
     req.body.poster=req.user.id;
     postItemService.create(req.body)
-        .then(() => res.json({}))
+        .then(postitem => res.json(postitem))
         .catch(err => next(err));
 }
 

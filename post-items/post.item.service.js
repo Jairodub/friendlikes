@@ -17,7 +17,7 @@ async function getAll() {
 return await PostItem.find({parent:null})
     .populate({path:'poster'});
 }
-
+// Send any multiple object responses in pages holding 10 each
 async function paginate(page, pageSize, query){
     if (pageSize === undefined) {
         pageSize = 10;
@@ -35,6 +35,7 @@ async function paginate(page, pageSize, query){
     }
     return await PostItem.paginate(filter, {page:page, limit:pageSize, populate:'poster'});
 }
+// Fetch item by either the deafult mongo id or the custom id
 async function getById(Iid) {
     var postitem = await PostItem.findOne({postitemId:Iid})
         .populate({path:'poster'});
@@ -43,9 +44,13 @@ async function getById(Iid) {
         .populate({path:'poster'}); 
 }
 
-async function getChildren(id) {
-    return await PostItem.find({parent:id})
-    .populate({path:'poster'})
+async function getChildren(childId) {
+    if (await(PostItem.exists({id: childId}))){
+        return await PostItem.find({parent:id})
+        .populate({path:'poster'});
+    }
+    else throw 'Invalid post id';
+   
 }
 
 async function create(postitemParam) {
@@ -53,13 +58,17 @@ async function create(postitemParam) {
     if(await PostItem.exists({postitemId:postitemParam.postitemId})){
         throw 'Duplicate itemId'
     } 
-
+    console.log("herin");
     const postitem = new PostItem(postitemParam);
     await postitem.save();
+
+   const createdPost = await PostItem.findOne({postitemId:postitemParam.postitemId})
+        .populate({path:'poster'});
+   return createdPost.toJSON();
 }
 
 async function update(userId, id, postitemParam) {
-    const postitem = await PostItem.findOne({poster:userId, _id:id});
+    const postitem = await PostItem.findOne({poster:userId, id:id});
     
     // validate
     if (!postitem) throw 'Postitem not found';
@@ -71,8 +80,10 @@ async function update(userId, id, postitemParam) {
     
 }
 async function like (userId, likedPostId){
-    var postItem = await PostItem.findById(likedPostId);
-  
+    if (await(PostItem.exists({id: likedPostId}))){
+        var postItem = await PostItem.findById(likedPostId);
+    }
+    else throw 'Invalid post id';
     
     var allLikes = postItem.Likers;
 
@@ -82,11 +93,15 @@ async function like (userId, likedPostId){
     await postitem.save();
 }
 async function unlike(userId, likedPostId){
-    // validate ownership
+    if (await(PostItem.exists({id: likedPostId}))){
+        var postItem = await PostItem.findById(likedPostId);
+    }
+    else throw 'Invalid post id';
+
     var postItem = await PostItem.findById(likedPosttId)
 
     if (!postitem.likers.includes(userId)){
-        throw 'Item does not exist'
+        throw 'Post already unliked'
     }
   
     var allLikes = postItem.Likers;
@@ -99,17 +114,25 @@ async function unlike(userId, likedPostId){
     
     // save updated item
     await postitem.save();
+
 }
+// Delete post with either default mongo id or the custom id 
 async function _delete(userId, itemId) {
+    const exists = await PostItem.exists({id:itemId})||
+        await PostItem.exists({postitemId:itemId});
+    const owned = (await PostItem.exists({poster:userId, id:itemId})||
+        await PostItem.exists({poster:userId, postitemId:itemId}));
 
     // validate existance
-    if(!(await PostItem.exists({_id:itemId}))){
-        throw 'item does not exist'
+    if(!exists){
+        throw 'post does not exist'
     }
     // validate ownership
-    if (!(await PostItem.exists({poster:userId, _id:itemId}))){
+    if (!owned){
         throw 'unauthorised action'
     }
-    await PostItem.findByIdAndRemove(itemId);
+    const removed = await PostItem.findOneAndRemove({id:itemId});
+    if (!removed) await PostItem.findOneAndRemove({postitemId:itemId});
+    
 }
 
