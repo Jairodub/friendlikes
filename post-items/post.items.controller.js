@@ -19,9 +19,6 @@ router.delete('/:id',_delete);
 module.exports = router;
 
 function create(req, res, next) {
-    // check for spoofing
-    // console.log(req.user.id);
-    // if (req.body.id !== req.user.userId) throw 'User mismatch';
     req.body.poster=req.user.id;
     postItemService.create(req.body)
         .then(postitem => res.json(postitem))
@@ -34,25 +31,21 @@ function getAll(req, res, next) {
         .then(postitems => res.json(postitems))
         .catch(err => next(err));
 }
-
 function getChildren(req, res, next) {
     postItemService.getChildren(req.params.id)
         .then(postitems => res.json(postitems))
         .catch(err => next(err));
 }
-
 function getById(req, res, next) {
     postItemService.getById(req.params.id)
         .then(postitem => postitem ? res.json(postitem) : res.sendStatus(404)) 
         .catch(err => next(err));
 }
-
 function update(req, res, next) {
     postItemService.update(req.user.id, req.params.id, req.body)
         .then(() => res.json({}))
         .catch(err => next(err));
 }
-
 function _delete(req, res, next) {
     postItemService.delete(req.user.id, req.params.id)
         .then(() => res.json({}))
