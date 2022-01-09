@@ -32,62 +32,59 @@ async function authenticate({ username, password }) {
         };
     }
 }
-
 async function getAll() {
     return await User.find();
 }
-
 async function getById(uid) {
     return await User.findById(uid);
 }
-
 async function create(userParam) {
-
-    //check for duplicate custom uids 
+    //Confirm custom id is unique
     if(await User.exists({userId:userParam.userId})) throw 'duplicate userId'
-
-    // validate
+    // Confirm username is unique
     if (await User.findOne({ username: userParam.username })) {
         throw 'Username "' + userParam.username + '" is already taken';
     }
-
+    // Create user from params
     const user = new User(userParam);
-
-    // hash password
+    // Hash the password
     if (userParam.password) {
         user.hash = bcrypt.hashSync(userParam.password, 10);
-    }else throw "password required"
-
-    // save user
+    }else throw "Password required"
+    // Save registered user
     await user.save();
 }
-
-async function update(id, userParam) {
-    // find user while validating for existance
-    const user = await User.findById(id);
-    if (!user) throw 'User not found';
-
-    // validate ownership
-    if(userId !== user.id) throw 'Unothorised action'
-
-    // validate for new username uniqueness 
-    if (user.username !== userParam.username && await User.findOne({ username: userParam.username })) {
-        throw 'Username "' + userParam.username + '" is already taken';
+async function update(loggedInUserId, paramsId, reqBody) {
+    // Confirm user is updating own profile
+    if (loggedInUserId!==paramsId){
+        throw 'Unauthoised action';
+     }
+    // Validate params id and find user
+    if(User.exists({id:paramsId})){
+        throw 'User does not exist';
     }
-
-    // hash password if it was entered
-    if (userParam.password) {
-        userParam.hash = bcrypt.hashSync(userParam.password, 10);
+    const user = await User.findById(paramsId);
+    // Confirm username and userId are not changed
+    if(reqBody.username){
+        throw 'Username cannot be changed';
     }
-
-    // copy userParam properties to user
-    Object.assign(user, userParam);
-
+    if(reqBody.userId){
+        throw 'UserId cannot be changed';
+    }
+    // Hash password if it was updated
+    if (reqBody.password) {
+        reqBody.hash = bcrypt.hashSync(userParam.password, 10);
+    }
+    // Copy userParam properties to user and save user with updates
+    Object.assign(user, reqBody);
     await user.save();
 }
-
-async function _delete(id) {
-    await User.findByIdAndRemove(id);
+async function _delete(loggedInUserId, paramsId) {
+    // Confirm user is deleting own profile
+    if (loggedInUserId!==paramsId){
+       throw 'Unauthoised action';
+    }
+    await User.findByIdAndRemove(paramsId);
 }
 io.on('connection',(socket)=>{
     io.to(socket.id).emit('username', username);
@@ -141,9 +138,9 @@ io.on('connection',(socket)=>{
     });
 });
 async function sendRequest(req) {
-    User.find({"username" : req.body.myUsername,"friends.name":req.body.friendUsername},function(err,doc){
+    User.find({"username" : req.body.myUsername,"friends.name":req.body.friendUsername},function(err,users){
         if(err) throw err 
-        else if(doc.length!=0){
+        else if(users.length!=0){
            console.log('friend request already sent');
         }
         else{
@@ -161,7 +158,7 @@ async function sendRequest(req) {
             },function(err,friendRequest){
                 if(err)throw err;
             });
-            io.to(doc[req.body.friendUsername]).emit('message', req.body);
+            io.to(users[req.body.friendUsername]).emit('message', req.body);
         }
     });
 }

@@ -35,7 +35,7 @@ async function paginate(page, pageSize, query){
     }
     return await PostItem.paginate(filter, {page:page, limit:pageSize, populate:'poster'});
 }
-// Fetch item by either the deafult mongo id or the custom id
+// Get item by either the deafult mongo id or the custom id
 async function getById(Iid) {
     var postitem = await PostItem.findOne({postitemId:Iid})
         .populate({path:'poster'});
@@ -43,7 +43,7 @@ async function getById(Iid) {
         return await PostItem.findById(Iid)
         .populate({path:'poster'}); 
 }
-
+// Get all post comments 
 async function getChildren(childId) {
     if (await(PostItem.exists({id: childId}))){
         return await PostItem.find({parent:id})
@@ -54,76 +54,76 @@ async function getChildren(childId) {
 }
 
 async function create(postitemParam) {
-    // check for duplicate ids
+    // Check if post id is a duplicate 
     if(await PostItem.exists({postitemId:postitemParam.postitemId})){
         throw 'Duplicate itemId'
     } 
+    // Copy post param properties to a new post and save the post
     const postitem = new PostItem(postitemParam);
     await postitem.save();
-
-   const createdPost = await PostItem.findOne({postitemId:postitemParam.postitemId})
+    // Get created post and sve it
+    const createdPost = await PostItem.findOne({postitemId:postitemParam.postitemId})
         .populate({path:'poster'});
-   return createdPost.toJSON();
+    return createdPost.toJSON();
 }
-
 async function update(userId, id, postitemParam) {
     const postitem = await PostItem.findOne({poster:userId, id:id});
-    // validate
+    // Validate post id
     if (!postitem) throw 'Postitem not found';
-    // copy postitemParam properties to postitem
+    // Copy post param properties to a new post and save the post
     Object.assign(postitem, postitemParam);
     await postitem.save(); 
 }
 async function like (userId, likedPostId){
-    // validate post id then get post
+    console.log(likedPostId);
+    // Validate post id then get post
     if (await(PostItem.exists({id: likedPostId}))){
         var postItem = await PostItem.findById(likedPostId);
     }
     else throw 'Invalid post id';
-    // get all likes from post and add new like
+    // Get all likes from post and add new like
     var allLikes = postItem.Likers;
     allLikes.push(userId);
-    // save updated likes to post and save post
+    // Save updated likes to post and save post
     Object.assign(postItem, {likers: allLikes});
     await postitem.save();
 }
 async function unlike(userId, likedPostId){
-    // validate post id then get post
+    // Validate post id then get post
     if (await(PostItem.exists({id: likedPostId}))){
         var postItem = await PostItem.findById(likedPostId);
     }
     else throw 'Invalid post id';
-    // check if post is liked
+    // Check if post is liked
     if (!postitem.likers.includes(userId)){
         throw 'Post already unliked'
     }
-    // get all likes from post and remove user's like
+    // Get all likes from post and remove user's like
     var allLikes = postItem.Likers;
     allLikes = allLikes.filter(x=> x.id!==userId);
-    // update post likes and save post
+    // Update post likes and save post
     Object.assign(postItem, {likers: allLikes});
     await postitem.save();
-
 }
 // Delete post with either default mongo id or the custom id 
 async function _delete(userId, itemId) {
-    // boolean variable checking validity of post id
+    // Create boolean variable checking validity of post id
     const exists = await PostItem.exists({id:itemId})||
         await PostItem.exists({postitemId:itemId});
-    // boolean variable checking ownership of post by user
+    // Create boolean variable checking ownership of post by user
     const owned = (await PostItem.exists({poster:userId, id:itemId})||
         await PostItem.exists({poster:userId, postitemId:itemId}));
 
-    // validate existance
+    // Validate post existance
     if(!exists){
         throw 'post does not exist' 
     }
-    // validate ownership
+    // Validate post ownership
     if (!owned){
         throw 'unauthorised action'
     }
+    // Remove post internal id or custom id 
     const removed = await PostItem.findOneAndRemove({id:itemId});
-    if (!removed) await PostItem.findOneAndRemove({postitemId:itemId});
-    
+    if (!removed) await PostItem.findOneAndRemove({postitemId:itemId});  
 }
 

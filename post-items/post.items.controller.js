@@ -6,13 +6,12 @@ const CacheControl = require("express-cache-control");
 
 const postItemService = require('./post.item.service');
 
-// routes
 router.post('/create', create);
 router.get('/', getAll);
 router.get('/:id', getById);
 router.get('/:id/children', getChildren);
 router.post('/:id/like', like);
-router.delete('/:id/unlike', unlike);
+router.post('/:id/unlike', unlike);
 router.put('/:id', update);
 router.delete('/:id',_delete);
 
@@ -24,7 +23,6 @@ function create(req, res, next) {
         .then(postitem => res.json(postitem))
         .catch(err => next(err));
 }
-
 function getAll(req, res, next) {
     if(!req.query.parent) req.query.parent=null;
     postItemService.paginate(req.query.page, req.query.limit, req.query)
