@@ -18,8 +18,7 @@ router.delete('/:id',_delete);
 module.exports = router;
 
 function create(req, res, next) {
-    req.body.poster=req.user.id;
-    postItemService.create(req.body)
+    postItemService.create(req.user.id, req.body)
         .then(postitem => res.json(postitem))
         .catch(err => next(err));
 }

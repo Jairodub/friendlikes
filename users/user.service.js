@@ -4,6 +4,7 @@ var express = require('express');
 var app = express();
 var server   = require('http').Server(app);
 var io       = require('socket.io')(server);
+const mongoose = require('mongoose');
 
 const config = require('config.json');
 const db = require('_helpers/db');
@@ -15,6 +16,7 @@ module.exports = {
     authenticate,
     getAll,
     getById,
+    getByIdClean,
     create,
     update,
     delete: _delete,
@@ -35,7 +37,17 @@ async function authenticate({ username, password }) {
 async function getAll() {
     return await User.find();
 }
-async function getById(uid) {
+async function getById(paramsId) {
+    // Validate paramsId
+    if(!mongoose.Types.ObjectId.isValid(paramsId)) {
+        throw 'Not a valid user id'
+    }
+    const user = await User.findById(paramsId);
+    // Confirm user exists
+    if(!user) throw 'User does not exist';
+    return user;   
+}
+async function getByIdClean(uid) {
     return await User.findById(uid);
 }
 async function create(userParam) {
@@ -50,19 +62,22 @@ async function create(userParam) {
     // Hash the password
     if (userParam.password) {
         user.hash = bcrypt.hashSync(userParam.password, 10);
-    }else throw "Password required"
+    }else throw 'Password required';
     // Save registered user
     await user.save();
 }
 async function update(loggedInUserId, paramsId, reqBody) {
+    // Validate paramsId
+    if(!mongoose.Types.ObjectId.isValid(paramsId)) {
+        throw 'Not a valid user id';
+    }
+    if(!User.exists({id:paramsId})){
+        throw 'User does not exist'
+    }
     // Confirm user is updating own profile
     if (loggedInUserId!==paramsId){
         throw 'Unauthoised action';
      }
-    // Validate params id and find user
-    if(User.exists({id:paramsId})){
-        throw 'User does not exist';
-    }
     const user = await User.findById(paramsId);
     // Confirm username and userId are not changed
     if(reqBody.username){
@@ -80,9 +95,17 @@ async function update(loggedInUserId, paramsId, reqBody) {
     await user.save();
 }
 async function _delete(loggedInUserId, paramsId) {
+    User.remove();
+    // Validate paramsId
+    if(!mongoose.Types.ObjectId.isValid(paramsId)) {
+        throw 'Not a valid user id';
+    }
+    if(!User.exists({id:paramsId})){
+        throw 'User does not exist';
+    }
     // Confirm user is deleting own profile
     if (loggedInUserId!==paramsId){
-       throw 'Unauthoised action';
+       throw 'User not authorised to delete profile';
     }
     await User.findByIdAndRemove(paramsId);
 }
