@@ -88,7 +88,6 @@ async function update(loggedInUserId, paramsId, reqBody) {
     // Find post using the local findById function 
     const postitem = await getById(paramsId);
     // Confirm user owns the post
-    console.log(postitem.poster);
     if(loggedInUserId!==postitem.poster.id){
         // throw 'User not authorised to update post';
     }
@@ -101,12 +100,10 @@ async function like (userId, paramsId){
     var postitem = await getById(paramsId);
     // Get all likes from post and add new like
     var allLikes=[];
-    allLikes .push(postitem.Likers);
+    allLikes .concat(postitem.Likers);
     allLikes.push(userId);
-    console.log(allLikes)
     // Save updated likes to post and save post
     Object.assign(postitem, {likers: allLikes});
-    console.log('herin')
     await postitem.save();
 }
 async function unlike(userId, paramsId){
@@ -117,7 +114,8 @@ async function unlike(userId, paramsId){
         throw 'Post already unliked'
     }
     // Get all likes from post and remove user's like
-    var allLikes = postitem.Likers;
+    var allLikes=[]
+    allLikes.concat(postitem.Likers);
     allLikes = allLikes.filter(x=> x.id!==userId);
     // Update post likes and save post
     Object.assign(postitem, {likers: allLikes});
@@ -132,7 +130,7 @@ async function _delete(userId, paramsId) {
             if(!(await PostItem.exists({poster:userId, id:paramsId})));
                 throw 'User not authorised to delete post';
         }
-        else throw 'User not authorised to delete post';
+        // else throw 'User not authorised to delete post';
     }
     // Remove post internal id or custom id 
     var removed =await PostItem.findOneAndRemove({postitemId:paramsId})
