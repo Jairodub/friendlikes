@@ -89,7 +89,7 @@ async function update(loggedInUserId, paramsId, reqBody) {
     const postitem = await getById(paramsId);
     // Confirm user owns the post
     if(loggedInUserId!==postitem.poster.id){
-        // throw 'User not authorised to update post';
+        throw 'User not authorised to update post';
     }
     // Copy post param properties to a new post and save the post
     Object.assign(postitem, reqBody);
@@ -130,7 +130,7 @@ async function _delete(userId, paramsId) {
             if(!(await PostItem.exists({poster:userId, id:paramsId})));
                 throw 'User not authorised to delete post';
         }
-        // else throw 'User not authorised to delete post';
+        else throw 'User not authorised to delete post';
     }
     // Remove post internal id or custom id 
     var removed =await PostItem.findOneAndRemove({postitemId:paramsId})

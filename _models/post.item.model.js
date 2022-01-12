@@ -34,12 +34,8 @@ const schema = new Schema({
         ref: "User"
     }],
     likers: [{
-        id: {
             type: Schema.Types.ObjectId,
             ref: "User"
-        },
-        username: String,
-        pic:String
     }], 
  
 });

@@ -110,17 +110,18 @@ async function _delete(loggedInUserId, paramsId) {
     await User.findByIdAndRemove(paramsId);
 }
 io.on('connection',(socket)=>{
+    var users = [];
+    var keys = [];
     io.to(socket.id).emit('username', username);
-    users[username ]= socket.id;
+    users[username]= socket.id;
     keys[socket.id] = username;
     User.find({"username" : username},{doc:1,_id:0},function(err,doc){
         if(err) return err;
         else{
-            friends=[];
-            pending=[];
-            allFriends=[];
+            var friends=[];
+            var pending=[];
             console.log("friends list: "+doc);
-            list=doc[0].friends.slice();
+            var list=doc[0].friends.slice();
             console.log(list);
             
             for(var i in list){
@@ -145,7 +146,7 @@ io.on('connection',(socket)=>{
     });
     
     socket.on('private message',function(msg){
-        Messages.create({
+        Message.create({
             "message":msg.split("#*@")[1],
             "sender" :msg.split("#*@")[2],
             "reciever":msg.split("#*@")[0],
@@ -167,7 +168,7 @@ async function sendRequest(req) {
            console.log('friend request already sent');
         }
         else{
-            User.update({
+             User.update({
                 username:req.body.myUsername
             },{
                 $push:{
@@ -187,25 +188,24 @@ async function sendRequest(req) {
 }
 async function confirmRequest (req){
     if(req.body.accept=="Yes"){
-        models.user.find({
+        User.find({
             "username" : req.body.friendUsername,
             "friends.name":req.body.myUsername
-        },function(err,doc){
-            console.log('Friend request already ');
+        },function(err,doc){;
             if(err){
                 
-                throw err;
+                 err;
             }
             else if(doc.length!=0){         
                 console.log('Friend request already accepted')
             }
             else{
-                models.user.update({
+                User.update({
                     "username":req.body.myUsername,
                     "friends.name":req.body.friendUsername
                 },{
                     '$set':{
-                        "friends.$.status":"Friend"
+                        "friends.status":"Friend"
                     }
                 },function(err,doc){
                     if(err) throw err;
@@ -214,7 +214,7 @@ async function confirmRequest (req){
                         io.to(users[req.body.myUsername]).emit('friend', req.body.friendUsername);
                     }
                 });
-                models.user.update({
+                 User.update({
                     username:req.body.friendUsername
                 },{
                     $push:{
@@ -231,7 +231,7 @@ async function confirmRequest (req){
         });
     }
     else{   
-        models.user.update({
+        User.update({
             "username":req.body.myUsername
         },{
             '$pull':{
