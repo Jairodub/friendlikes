@@ -207,7 +207,7 @@ async function confirmRequest (req){
                     '$set':{
                         "friends.status":"Friend"
                     }
-                },function(err,doc){
+                },function(err,users){
                     if(err) throw err;
                     else{
                         io.to(users[req.body.friendUsername]).emit('friend', req.body.myUsername);

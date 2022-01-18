@@ -69,7 +69,7 @@ async function create(loggedInUserId, postitemParam) {
     // Assign current user id as post owner and save the post
     Object.assign(postitem, {poster:loggedInUserId})
    
-    if(postitem.poster){
+    if(postitem.poster&&postitem.poster!=null){
         await postitem.save();
     }else throw 'wtf';
     // Get created post and send it
@@ -83,7 +83,7 @@ async function update(loggedInUserId, paramsId, reqBody) {
         throw 'Cannot change poster';
     }
     if(reqBody.postitemId){
-        throw 'Cannot change postitemId'
+        throw 'Cannot change postitemId';
     }
     // Find post using the local findById function 
     const postitem = await getById(paramsId);
@@ -94,7 +94,7 @@ async function update(loggedInUserId, paramsId, reqBody) {
     // Copy post param properties to a new post and save the post
     Object.assign(postitem, reqBody);
     await postitem.save(); 
-}
+};
 async function like (userId, paramsId){
     // Find post using the local findById function 
     var postitem = await getById(paramsId);
@@ -105,22 +105,22 @@ async function like (userId, paramsId){
     // Save updated likes to post and save post
     Object.assign(postitem, {likers: allLikes});
     await postitem.save();
-}
+};
 async function unlike(userId, paramsId){
     // Find post using the local findById function 
     var postitem = await getById(paramsId);
     // Check if post is liked
     if (!postitem.likers.includes(userId)){
-        throw 'Post already unliked'
+        throw 'Post already unliked';
     }
     // Get all likes from post and remove user's like
-    var allLikes=[]
+    var allLikes=[];
     allLikes.concat(postitem.Likers);
     allLikes = allLikes.filter(x=> x.id!==userId);
     // Update post likes and save post
     Object.assign(postitem, {likers: allLikes});
     await postitem.save();
-}
+};
 // Delete post with either default mongo id or the custom id 
 async function _delete(userId, paramsId) {
     // Create boolean variable checking validity of post id
@@ -130,11 +130,11 @@ async function _delete(userId, paramsId) {
             if(!(await PostItem.exists({poster:userId, id:paramsId})));
                 throw 'User not authorised to delete post';
         }
-        else throw 'User not authorised to delete post';
+        // else throw 'User not authorised to delete post';
     }
     // Remove post internal id or custom id 
     var removed =await PostItem.findOneAndRemove({postitemId:paramsId})
-    if((!removed)&&valid){
-    }     
-}
+    if((!removed)&&valid){     
+    };     
+};
 

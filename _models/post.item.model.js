@@ -14,7 +14,7 @@ const schema = new Schema({
     isRead: {type:Boolean, default:false},
     poster : {
         type: Schema.Types.ObjectId,
-        required: true,
+        required: isPresent,
         ref: "User"
     },
     created:{
@@ -39,6 +39,10 @@ const schema = new Schema({
     }], 
  
 });
+function isPresent() {
+    return typeof this.poster === 'string'? false : true
+}
+
 schema.plugin(mongoosePaginate);
 schema.set('toJSON', {
     virtuals: true,
